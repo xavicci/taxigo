@@ -1,0 +1,5 @@
+Para que todo funcione, necesitas:
+Copiar los archivos proto a la carpeta android/app/src/main/proto/
+Ejecutar ./gradlew clean en la carpeta android
+Ejecutar ./gradlew generateProto para generar los archivos Java
+Reconstruir la aplicación
