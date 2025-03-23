@@ -1,33 +1,44 @@
+// main.go
 package main
 
 import (
+	"context"
 	"log"
-	"net/http"
-	"taxiya/internal/auth"
-	"taxiya/internal/server"
+	"net"
+
+	pb "github.com/xavicci/taxisgo/proto/auth"
+
+	"google.golang.org/grpc"
 )
 
+type server struct {
+	pb.UnimplementedAuthServiceServer
+}
+
+func (s *server) Login(ctx context.Context, req *pb.LoginRequest) (*pb.LoginResponse, error) {
+	// Aquí iría la lógica de autenticación
+	if req.Username == "user" && req.Password == "pass" {
+		return &pb.LoginResponse{
+			Success: true,
+			Message: "Login successful",
+			Token:   "someauthtoken",
+		}, nil
+	}
+	return &pb.LoginResponse{
+		Success: false,
+		Message: "Invalid credentials",
+	}, nil
+}
+
 func main() {
-	// Inicializar el servicio de autenticación
-	authService := auth.NewAuthService()
-
-	// Inicializar el handler HTTP
-	httpHandler := server.NewHTTPHandler(authService)
-
-	// Configurar rutas HTTP
-	http.HandleFunc("/api/login", httpHandler.Login)
-	http.HandleFunc("/api/register", httpHandler.Register)
-
-	// Iniciar servidor HTTP
-	go func() {
-		log.Printf("HTTP Server listening at :8080")
-		if err := http.ListenAndServe(":8080", nil); err != nil {
-			log.Fatalf("Failed to start HTTP server: %v", err)
-		}
-	}()
-
-	// Iniciar servidor gRPC
-	if err := server.StartServer(":50051"); err != nil {
-		log.Fatalf("Failed to start gRPC server: %v", err)
+	lis, err := net.Listen("tcp", ":50051")
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+	s := grpc.NewServer()
+	pb.RegisterAuthServiceServer(s, &server{})
+	log.Printf("server listening at %v", lis.Addr())
+	if err := s.Serve(lis); err != nil {
+		log.Fatalf("failed to serve: %v", err)
 	}
 }
